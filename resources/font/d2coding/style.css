@@ -1,0 +1,13 @@
+@font-face {
+    font-family: 'MAIN-EB';
+    src: url('/resources/wiz/plugin/theme/font/d2coding/EB.ttf') format('truetype');
+    font-style: normal;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: 'MAIN-R';
+    src: url('/resources/wiz/plugin/theme/font/d2coding/R.ttf') format('truetype');
+    font-style: normal;
+    font-weight: normal;
+}
