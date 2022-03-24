@@ -1,0 +1,20 @@
+doctype 5
+
+html(ng-app="app")
+    head
+        {$ framework.view('core.theme.head') $}
+        
+    body.antialiased(style="background: white;" ng-cloak)
+        script(src='/resources/wiz/plugin/theme/libs/tabler/dist/libs/bootstrap/dist/js/bootstrap.bundle.min.js')
+        script(src='/resources/wiz/plugin/theme/libs/tabler/dist/libs/peity/jquery.peity.min.js')
+        script(src='/resources/wiz/plugin/theme/libs/tabler/dist/js/tabler.min.js')
+
+        - if monaco
+            script(src='/resources/wiz/plugin/theme/libs/monaco/min/vs/loader.js')
+            script.
+                require.config({ paths: { vs: '/resources/wiz/plugin/theme/libs/monaco/min/vs' } });
+
+        - if navbar
+            {$ framework.view('core.theme.navbar') $}
+
+        {$ view $}

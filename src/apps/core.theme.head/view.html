@@ -1,0 +1,203 @@
+title SEASON WIZ
+
+meta(charset='utf-8')
+meta(name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover')
+meta(http-equiv='X-UA-Compatible' content='ie=edge')
+meta(name='msapplication-TileColor' content='#206bc4')
+meta(name='theme-color' content='#206bc4')
+meta(name='apple-mobile-web-app-status-bar-style' content='black-translucent')
+meta(name='apple-mobile-web-app-capable' content='yes')
+meta(name='mobile-web-app-capable' content='yes')
+meta(name='HandheldFriendly' content='True')
+meta(name='MobileOptimized' content='320')
+
+link(rel="shortcut icon" href="/resources/img/icon.ico")
+link(data-n-head="ssr" rel="apple-touch-icon" href="/resources/img/icon_g.png")
+
+//- fontawesome
+link(href='/resources/wiz/plugin/theme/libs/fontawesome/css/all.min.css' rel='stylesheet')
+
+script(src='/resources/wiz/plugin/theme/libs/tabler/dist/libs/jquery/dist/jquery.slim.min.js')
+script(src='/resources/wiz/plugin/theme/libs/jquery/jquery-3.5.1.min.js')
+script(src='/resources/wiz/plugin/theme/libs/moment/moment-with-locales.min.js')
+
+//- tabler
+link(href='/resources/wiz/plugin/theme/libs/tabler/dist/css/tabler.min.css' rel='stylesheet')
+link(href='/resources/wiz/plugin/theme/libs/tabler/dist/css/tabler-flags.min.css' rel='stylesheet')
+link(href='/resources/wiz/plugin/theme/libs/tabler/dist/css/tabler-payments.min.css' rel='stylesheet')
+link(href='/resources/wiz/plugin/theme/libs/tabler/dist/css/tabler-buttons.min.css' rel='stylesheet')
+link(href='/resources/wiz/plugin/theme/libs/tabler/dist/css/demo.min.css' rel='stylesheet')
+
+//- toastr
+link(href='/resources/wiz/plugin/theme/libs/toastr/toastr.min.css' rel='stylesheet')
+script(src='/resources/wiz/plugin/theme/libs/toastr/toastr.min.js')
+
+//- tinymce
+script(src='/resources/wiz/plugin/theme/libs/tinymce/tinymce.min.js')
+
+link(href='/resources/wiz/plugin/theme/libs/split-pane/split-pane.css' rel='stylesheet')
+script(src='/resources/wiz/plugin/theme/libs/split-pane/split-pane.js')
+
+//- angular
+script(src='/resources/wiz/plugin/theme/libs/angular/angular.min.js')
+script(src='/resources/wiz/plugin/theme/libs/angular/angular-sanitize.js')
+script(src='/resources/wiz/plugin/theme/libs/angular/ui-monaco.js')
+script(src='/resources/wiz/plugin/theme/libs/angular/ui-monaco-diff.js')
+script(src='/resources/wiz/plugin/theme/libs/angular/ui-tinymce.js')
+script(src='/resources/wiz/plugin/theme/libs/split-pane/angular-split-pane.js')
+
+//- socketio
+script(src='/resources/wiz/plugin/theme/libs/socketio/socket.io.js')
+
+//- theme
+link(href='/resources/wiz/plugin/theme/font/nanumgothic/style.css' rel='stylesheet')
+link(href='/resources/wiz/plugin/theme/less/theme.less' rel='stylesheet')
+
+script(src='/resources/wiz/plugin/theme/js/base.js')
+script(src='/resources/wiz/plugin/theme/js/drag.js')
+script(src='/resources/wiz/plugin/theme/js/shortcut.js')
+script(src='/resources/wiz/plugin/theme/js/app.js')
+script(src='/resources/wiz/plugin/theme/js/ansi.js')
+script(src='/resources/wiz/plugin/theme/js/build.js')
+
+script(type="text/javascript").
+    if (!window.season_wiz) {
+        window.season_wiz = (() => {
+            let obj = {};
+            obj.__cache__ = {};
+
+            obj.load = (plugin_id, app_id, render_id) => {
+                let wiz = {};
+                wiz.id = app_id;
+                wiz.render_id = render_id;
+                wiz.plugin_id = plugin_id;
+
+                wiz.socket = {};
+                wiz.socket.active = false;
+
+                if (window.io) {
+                    wiz.socket.active = true;
+                    wiz.socket.get = (socketnamespace) => {
+                        let socketns = "/wiz/api/" + app_id;
+                        if (socketnamespace) socketns = "/wiz/api/" + socketnamespace;
+                        if (wiz.branch != 'master') socketns = socketns + "/" + wiz.branch;
+
+                        wiz.socket_instance = window.io(socketns);
+                        return wiz.socket_instance;
+                    }
+                }
+
+                wiz.API = {
+                    url: (fnname) => '/wiz/admin/api/plugin/' + plugin_id + '/' + app_id + '/' + fnname,
+                    function: (fnname, data, cb, opts) => {
+                        let _url = wiz.API.url(fnname);
+                        let ajax = {
+                            url: _url,
+                            type: 'POST',
+                            data: data
+                        };
+
+                        if (opts) {
+                            for (let key in opts) {
+                                ajax[key] = opts[key];
+                            }
+                        }
+
+                        $.ajax(ajax).always((a, b, c) => {
+                            cb(a, b, c);
+                        });
+                    },
+                    async: (fnname, data, opts = {}) => {
+                        const _url = wiz.API.url(fnname);
+                        let ajax = {
+                            url: _url,
+                            type: "POST",
+                            data: data,
+                            ...opts,
+                        };
+
+                        return new Promise((resolve) => {
+                            $.ajax(ajax).always(function (a, b, c) {
+                                resolve(a, b, c);
+                            });
+                        });
+                    }
+                };
+
+                wiz.timeout = (timestamp) => new Promise((resolve) => {
+                    setTimeout(resolve, timestamp);
+                });
+
+                wiz._event = {};
+                wiz._response = {};
+                wiz._response_activator = {};
+
+                wiz.bind = (name, fn) => {
+                    wiz._event[name] = (data) => new Promise(async (resolve, reject) => {
+                        let res = await fn(data);
+                        if (res) {
+                            return resolve(res);
+                        }
+
+                        wiz._response_activator[name] = true;
+
+                        let response_handler = () => {
+                            // if not activate, stop loop
+                            if (!wiz._response_activator[name]) {
+                                reject("deprecated event `" + name + "` of `" + wiz.app_id + "`");
+                                return;
+                            }
+
+                            // if activate 
+                            if (name in wiz._response) {
+                                let resp = wiz._response[name];
+                                delete wiz._response[name];
+                                delete wiz._response_activator[name];
+                                resolve(resp);
+                                return;
+                            }
+
+                            setTimeout(response_handler, 100);
+                        }
+                        response_handler();
+                    });
+                    return wiz;
+                };
+
+                wiz.response = (name, data) => {
+                    if (!wiz._response_activator[name]) return;
+                    wiz._response[name] = data;
+                    return wiz;
+                }
+
+                wiz.connect = (id) => {
+                    if (!obj.__cache__[id]) return null;
+                    let connected_wiz = obj.__cache__[id];
+                    let _obj = {};
+
+                    _obj.event = async (name) => {
+                        delete connected_wiz._response_activator[name];
+                        await wiz.timeout(200);
+
+                        if (connected_wiz._event[name]) {
+                            let res = await connected_wiz._event[name](_obj._data);
+                            return res;
+                        }
+                        return null;
+                    };
+
+                    _obj._data = null;
+                    _obj.data = (data) => {
+                        _obj._data = data;
+                        return _obj;
+                    }
+                    return _obj;
+                }
+
+                obj.__cache__[app_id] = wiz;
+                return wiz;
+            }
+
+            return obj;
+        })();
+    }
